@@ -8,6 +8,7 @@ setwd("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/DU/Aron Lab/Expe
 
 metadata <- read.csv("20250106_NAU_HILIC_Hip_16O_md.csv")
 quant_table <- read.csv("20250113_Hip_16O_quant.csv", sep = ",")
+output_file <-"Hip_16O_anova_pval.csv"
 
 ## Transform quant file ##
 colnames(quant_table)[1] <- "ID"
@@ -52,4 +53,4 @@ for (i in names(data_merge)[-c(1:14)]) {
 anova_p_values <- as.data.frame(anova_p_values)
 colnames(anova_p_values)[1] <- "p_value"
 
-write.csv(anova_p_values, file = "Hip_16O_anova_pval.csv")
+write.csv(anova_p_values, file = paste0(output_file) )
