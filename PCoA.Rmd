@@ -1,0 +1,139 @@
+---
+title: "PCoA"
+author: "Olivia Schwartz"
+date: "2024-10-16"
+output: html_document:
+  keep_md: yes
+---
+
+```{r}
+#Libraries
+library(tidyverse)
+library(vegan) #Data Analysis
+library(glue)  #Paste text
+library(tibble)
+library(grid)  #Plot text annotation
+library(mvShapiroTest)
+```
+
+```{r}
+#Files
+# (1) Quant table, normalized, output by data cleanup script (Normalized_Quant_table) (.csv)
+# (2) Metadata (.csv) -- first column is filenames
+
+quant_table <- read.csv("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheimers NAU/202504_HILIC_IntStd_Runs/Frontal Cortex/processed/Normalised_Quant_table.csv", sep = ",") #Output from data cleanup
+metadata <- read.csv("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheimers NAU/202504_HILIC_IntStd_Runs/Frontal Cortex/202504_HILIC_FC_md_16O.csv", header = T, check.names = F, sep = ",")
+colnames(metadata)<-gsub("ATTRIBUTE_","",colnames(metadata)) #Remove "ATTRIBUTE_"
+
+feat_test <- "Strain"
+method <- "bray" #input for vegdist()
+titles <- paste0("Batch1_HILIC_FC_",feat_test,"_",method)
+outdirectory <- "C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheimers NAU/202504_HILIC_IntStd_Runs/Frontal Cortex/"
+
+#CONDITION1#
+#Test dissimilarity of this feature under a specific condition (ex. specific timepoint or phenotype)
+feature1 = "Sample_Type" #Feature under which the condition falls
+feat_condition1 = "Frontal Cortex" #Value for condition
+metadata <- metadata %>% dplyr::filter(metadata[[feature1]] != "NA" & metadata[[feature1]] == feat_condition1)
+titles <- paste0(titles,"_",feature1,"_",feat_condition1)
+
+#CONDITION 2#
+feature2 = "Wk" #Feature under which the condition falls
+feat_condition2 = "52-56" #Value for condition
+metadata <- metadata %>% dplyr::filter(metadata[[feature2]] != "NA" & metadata[[feature2]] == feat_condition2)
+titles <- paste0(titles,"_",feat_condition2)
+
+```
+
+```{r}
+#Data manipulation
+
+#Selecting metadata with feature tested, removing NAs
+colnames(metadata)[1] <- "filename"
+metadata <- metadata %>% dplyr::select("filename",all_of(feat_test))  %>% dplyr::filter(metadata[[feat_test]] != "NA")
+
+#Set new quant table where colnames = features; rownames = file names
+quant_table[c(1),] <- colnames(quant_table) #Making a column of filenames for easier filtering
+quant_table_t <- t(quant_table)
+colnames(quant_table_t) <- quant_table_t[c(1),]
+quant_table_t <- quant_table_t[-c(1),]
+colnames(quant_table_t)[1] <- "filename"
+quant_table_t <- as.data.frame(quant_table_t)
+
+#Filter out files that are not being tested
+quant_table_t <- quant_table_t[quant_table_t$filename %in% metadata$filename,]
+quant_table_t <- quant_table_t[,-1] 
+
+#Convert the quant table into a numeric matrix
+quant_table_num <- as.matrix(quant_table_t)
+quant_table_num <- matrix(as.numeric(unlist(quant_table_t)), ncol = ncol(quant_table_t))
+colnames(quant_table_num) <- colnames(quant_table_t)
+rownames(quant_table_num) <- rownames(quant_table_t)
+rm(quant_table_t)
+
+
+```
+
+```{r}
+#Dissimilarity and plotting PCoA 
+
+#Dissimilarity calculations
+dist_matrix <- vegdist(quant_table_num, method = paste0(method))
+
+#PCoA (Input a distance matrix)
+pcoa_table <- cmdscale(dist_matrix, k=2) #Multidimensional scaling 
+colnames(pcoa_table) <- c("pcoa1", "pcoa2")
+pcoa_table <- cmdscale(dist_matrix, k=2, eig=TRUE, add=TRUE)
+positions <- pcoa_table$points
+colnames(positions) <- c("pcoa1","pcoa2")
+
+percent_explained <- 100 * pcoa_table$eig / sum(pcoa_table$eig)                #Percent variance explained by each axis
+percent_round <- format(round(percent_explained[1:2], digits = 1), nsmall=1) #Round for plotting
+labs <- c(glue("PCo 1 ({percent_round[1]}%)"),
+          glue("PCo 2 ({percent_round[2]}%)"))
+
+#Plot PCoA (No P-value on plot)
+dist_plot <- positions %>% 
+  as_tibble(rownames = "filename") %>%
+  inner_join(.,metadata) %>%
+  ggplot(aes_string(x="pcoa1", y="pcoa2", color=paste0(feat_test))) + 
+  geom_point() + 
+  labs(x=labs[1], y=labs[2]) + ggtitle(paste0(titles)) +
+  theme(text = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 16))
+# dist_plot
+# ggsave(file=paste0(outdirectory,titles,".svg"), plot=last_plot())
+```
+
+```{r}
+# PERMANOVA
+
+# [distance matrix] ~ [metadata, 1 col of tested condition]$[col tested condition], 
+metadata <- as.data.frame(metadata)
+metadata[2] <- unlist(metadata[2])
+permanova_all <- adonis2(dist_matrix ~ metadata[[2]], metadata, na.action = na.omit, method = paste0(method))
+permanova_all
+write.csv(permanova_all, paste0('Permanova',titles,'.csv'),row.names = TRUE)
+
+#P value to PCoA plot
+perm_label <- grobTree(textGrob(paste0("PERMANOVA Pr(>F):",permanova_all$`Pr(>F)`[1]), x=0.1,  y=0.95, hjust=0,
+  gp=gpar(col="black", fontsize=13)))
+dist_plot + annotation_custom(perm_label)
+ggsave(file=paste0(outdirectory,titles,".svg"), plot=last_plot())
+```
+```{r}
+#Shapiro Tests
+# n=1
+# shapiro_res <- 0
+# for (n in n:ncol(quant_table_num)) {
+#  
+#    shapiro <- shapiro.test(quant_table_num[,n])
+#   shapiro_res[n] <- shapiro[["p.value"]]
+#   
+#   n=n+1
+# }
+# rm(n, shapiro)
+# view(shaprio_res)
+# write.csv(samples, paste(outdirectory, tiltes,".svg"))
+```
