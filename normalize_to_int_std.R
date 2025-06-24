@@ -6,8 +6,8 @@ setwd("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheim
 # (1) quant table (.csv)
 # (2) metadata table (.csv), "filename"
 
-ft <- read.csv("mzmine/20250527_HILIC_NAU_FC_Batch3_iimn_gnps_quant.csv", header = T, check.names = F, sep = ",")
-outfile <- "HILIC_FC_BATCH3_normtostd"
+ft <- read.csv("mzmine/20250530_HILIC_BATCH3_FC_batchcorrect_quant.csv", header = T, check.names = F, sep = ",")
+outfile <- "HILIC_FC_batchcorrected_normtostd"
 
 new_ft <- ft
 #Removing Peak area extensions
