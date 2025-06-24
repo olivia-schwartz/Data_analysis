@@ -68,5 +68,8 @@ cv_table <- t(cv_table)
 # Barplot
 ggplot(cv_table, aes(x=Compound, y=CV)) + 
   geom_bar(stat = "identity") +
-  coord_flip() + ggtitle("QC Mix Compounds CV")
+  coord_flip() + ggtitle("QC Mix Compounds CV") +
+  theme(text = element_text(size = 18),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 18))
 ggsave(paste0(outfolder,"QC_Mix_Compounds_CV.svg"),plot=last_plot())

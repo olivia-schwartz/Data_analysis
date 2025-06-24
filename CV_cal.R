@@ -60,5 +60,10 @@ cv_table <- t(cv_table)
 # Barplot
 ggplot(cv_table, aes(x=Category, y=CV)) + 
   geom_bar(stat = "identity") +
-  coord_flip() + ggtitle(paste(ft_CV," CV"))
-ggsave(paste0(outfolder,ft_CV,".svg"),plot=last_plot())
+  coord_flip() + ggtitle(paste(ft_CV," CV"))  +
+  theme(text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 14))
+
+ggsave(paste0(outfolder,ft_CV,"cv_bar.svg"),plot=last_plot())
+write.csv(cv_table, file=paste(outfolder,ft_CV,"_table.csv"))
