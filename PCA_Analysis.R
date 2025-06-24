@@ -32,26 +32,25 @@ library(cowplot) #efficient functions to arrange several plots
 ############INPUTS############
 
 #Files
-setwd("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheimers NAU/202504_HILIC_IntStd_Runs/Frontal Cortex")
-Imp_clr <- read.csv("processed/IMP_clr.csv", header = T, check.names = F, sep = ",")
-metadata <- read.csv("202504_HILIC_FC_md_16O.csv")
+setwd("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheimers NAU/20250527_HILIC_BATCH3/20250527_HILIC_BATCH3_FC")
+Imp_clr <- read.csv("processed_batchcorrected/IMP_clr.csv", header = T, check.names = F, sep = ",")
+metadata <- read.csv("20250527_HILIC_BATCH3_FC_md.csv")
 
-feat_test <- "Treatment" #Feature being tested for dissimilarity 
-plot_title <- "HILIC FC"
+feat_test <- "Strain" #Feature being tested for dissimilarity 
+plot_title <- "HILIC FC Batchcorrect"
 
 #Data filters
-  #Set unused filters to NA
   #Attribute = Column name
   #Condition = value to keep after filtering
 
-attribute_1 <- "Isotope"
-condition_1 <- "16O"
+attribute_1 <- "Sample_Type"
+condition_1 <- "Frontal Cortex"
 
-attribute_2 <- "Sample_Type"
-condition_2 <- "Frontal Cortex"
+attribute_2 <- "Isotope"
+condition_2 <- "16O"
 
-attribute_3 <- "Strain"
-condition_3 <- "WT"
+attribute_3 <- NA
+condition_3 <- NA
 
 ############INPUTS############
 
@@ -117,11 +116,17 @@ permanova_all <- adonis2(dist_metabolites ~ metadata_df$metadata, metadata_df, n
 write.csv(permanova_all, paste0('Permanova',plot_title,'.csv'),row.names = TRUE)
 
 pca_pvalue <- permanova_all$`Pr(>F)`[1]
+#Position of p-value on PCA plot
+p_position_y <- max(pca[["data"]][["y"]]) * 1.05
+p_position_x <- min(pca[["data"]][["x"]]) * 0.98
 
-# Add text in the top-left corner
-
-
-
-pca <- pca + annotate("text", x = -20, y = 13, label = paste0('Pr(>F):',pca_pvalue), size = 5)
+pca <- pca +
+  theme(text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 14))
 pca
+
+pca <- pca + labs(subtitle = paste('Pr(>F):',pca_pvalue))
+pca
+
 ggsave(file= paste0('PCA_',plot_title,'.svg'), plot=pca, width=10, height=8)
