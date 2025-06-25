@@ -1,4 +1,5 @@
 library(tidyverse)
+library(vegan) #rclr transform
 
 setwd("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheimers NAU/20250527_HILIC_BATCH3/20250527_HILIC_BATCH3_FC")
 
@@ -7,7 +8,7 @@ setwd("C:/Users/Olivia.Schwartz/OneDrive - University of Denver/Projects/Alzheim
 # (2) metadata table (.csv), "filename"
 
 ft <- read.csv("mzmine/20250530_HILIC_BATCH3_FC_batchcorrect_quant.csv", header = T, check.names = F, sep = ",")
-outfile <- "HILIC_FC_batchcorrected_normtostd"
+outfile <- "HILIC_FC_batchcorrected_normtostd" #outfile name (no extension)
 
 new_ft <- ft
 #Removing Peak area extensions
@@ -29,14 +30,18 @@ norm_ft <- new_ft
 
 std_feat <- "7817_184.094_2.289"
 std_index <- grep(paste(std_feat), colnames(new_ft))
-r <- 1
-c <- 1
+r <- 1 #row index
+c <- 1 #column index
 
   for (r in 1:nrow(norm_ft)) {
     for (c in 1:ncol(norm_ft)) {
       norm_ft[r,c] <- norm_ft[r,c]/norm_ft[r,std_index]
 }
   }
+
+#RCLR (robut centered log ratio) transform
+RCLR_t <- new_ft %>% decostand(method = "rclr")
+write.csv(RCLR_t, paste(outfile,"_RCLR.csv"),row.names = TRUE)
 
 #Reformat to match mzmine output formatting
 norm_ft<-as.data.frame(t(norm_ft))
@@ -54,3 +59,4 @@ ft_13col$`row ID` <- as.character(ft_13col$`row ID`)
 output_norm <- inner_join(ft_13col, norm_ft)
 
 write.csv(output_norm, file=paste(outfile,".csv"))
+
